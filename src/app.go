@@ -84,19 +84,19 @@ type NvidiaSmiLog struct {
 			TxUtil                string `xml:"tx_util"`
 			RxUtil                string `xml:"rx_util"`
 		} `xml:"pci"`
-		FanSpeed         string `xml:"fan_speed"`
-		PerformanceState string `xml:"performance_state"`
-		// <clocks_throttle_reasons>
-		// 	    <clocks_throttle_reason_gpu_idle>Not Active</clocks_throttle_reason_gpu_idle>
-		// 	    <clocks_throttle_reason_applications_clocks_setting>Not Active</clocks_throttle_reason_applications_clocks_setting>
-		// 	    <clocks_throttle_reason_sw_power_cap>Not Active</clocks_throttle_reason_sw_power_cap>
-		// 	    <clocks_throttle_reason_hw_slowdown>Not Active</clocks_throttle_reason_hw_slowdown>
-		// 	    <clocks_throttle_reason_hw_thermal_slowdown>N/A</clocks_throttle_reason_hw_thermal_slowdown>
-		// 	    <clocks_throttle_reason_hw_power_brake_slowdown>N/A</clocks_throttle_reason_hw_power_brake_slowdown>
-		// 	    <clocks_throttle_reason_sync_boost>Not Active</clocks_throttle_reason_sync_boost>
-		// 	    <clocks_throttle_reason_sw_thermal_slowdown>Not Active</clocks_throttle_reason_sw_thermal_slowdown>
-		// 	    <clocks_throttle_reason_display_clocks_setting>Not Active</clocks_throttle_reason_display_clocks_setting>
-		// </clocks_throttle_reasons>
+		FanSpeed             string `xml:"fan_speed"`
+		PerformanceState     string `xml:"performance_state"`
+		ClockThrottleReasons struct {
+			ClockThrottleReasonGPUIdle                   string `xml:"clocks_throttle_reason_gpu_idle"`
+			ClockThrottleReasonApplicationsClocksSetting string `xml:"clocks_throttle_reason_applications_clocks_setting"`
+			ClockThrottleReasonSWPowerCap                string `xml:"clocks_throttle_reason_sw_power_cap"`
+			ClockThrottleReasonHWSlowdown                string `xml:"clocks_throttle_reason_hw_slowdown"`
+			ClockThrottleReasonHWThermalSlowdown         string `xml:"clocks_throttle_reason_hw_thermal_slowdown"`
+			ClockThrottleReasonHWPowerBrakeSlowdown      string `xml:"clocks_throttle_reason_hw_power_brake_slowdown"`
+			ClockThrottleReasonSyncBoost                 string `xml:"clocks_throttle_reason_sync_boost"`
+			ClockThrottleReasonSWThermalSlowdown         string `xml:"clocks_throttle_reason_sw_thermal_slowdown"`
+			ClockThrottleReasonDisplayClocksSetting      string `xml:"clocks_throttle_reason_display_clocks_setting"`
+		} `xml:"clocks_throttle_reasons"`
 		FbMemoryUsage struct {
 			Total string `xml:"total"`
 			Used  string `xml:"used"`
@@ -310,6 +310,13 @@ func filterNumber(value string) string {
 	return r.ReplaceAllString(value, "")
 }
 
+func filterActive(value string) string {
+	if value == "Active" {
+		return "1"
+	}
+	return "0"
+}
+
 func metrics(w http.ResponseWriter, r *http.Request) {
 	log.Print("Serving /metrics")
 
@@ -389,6 +396,15 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, formatValue("nvidiasmi_clock_video_max_hertz", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterUnit(GPU.MaxClocks.VideoClock)))
 		io.WriteString(w, formatValue("nvidiasmi_clock_policy_auto_boost", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterUnit(GPU.ClockPolicy.AutoBoost)))
 		io.WriteString(w, formatValue("nvidiasmi_clock_policy_auto_boost_default", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterUnit(GPU.ClockPolicy.AutoBoostDefault)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_gpu_idle", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonGPUIdle)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_applications_clocks_setting", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonApplicationsClocksSetting)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_sw_power_cap", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonSWPowerCap)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_hw_slowdown", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonHWSlowdown)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_hw_thermal_slowdown", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonHWThermalSlowdown)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_hw_power_brake_slowdown", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonHWPowerBrakeSlowdown)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_sync_boost", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonSyncBoost)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_sw_thermal_slowdown", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonSWThermalSlowdown)))
+		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_display_clocks_setting", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonDisplayClocksSetting)))
 		for _, Process := range GPU.Processes.ProcessInfo {
 			io.WriteString(w, formatValue("nvidiasmi_process_used_memory_bytes", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\",process_pid=\""+Process.Pid+"\",process_type=\""+Process.Type+"\"", filterUnit(Process.UsedMemory)))
 		}
