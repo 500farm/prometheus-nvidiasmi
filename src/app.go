@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 const LISTEN_ADDRESS = ":9202"
@@ -317,6 +318,11 @@ func filterActive(value string) string {
 	return "0"
 }
 
+func promEscape(value string) string {
+	var re = regexp.MustCompile(`[\\"]`)
+	return strings.ReplaceAll(re.ReplaceAllString(value, `\$0`), "\n", `\n`)
+}
+
 func metrics(w http.ResponseWriter, r *http.Request) {
 	log.Print("Serving /metrics")
 
@@ -406,7 +412,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_sw_thermal_slowdown", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonSWThermalSlowdown)))
 		io.WriteString(w, formatValue("nvidiasmi_clocks_throttle_reason_display_clocks_setting", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\"", filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonDisplayClocksSetting)))
 		for _, Process := range GPU.Processes.ProcessInfo {
-			io.WriteString(w, formatValue("nvidiasmi_process_used_memory_bytes", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\",process_pid=\""+Process.Pid+"\",process_type=\""+Process.Type+"\"", filterUnit(Process.UsedMemory)))
+			io.WriteString(w, formatValue("nvidiasmi_process_used_memory_bytes", "id=\""+GPU.Id+"\",uuid=\""+GPU.UUID+"\",name=\""+GPU.ProductName+"\",process_pid=\""+Process.Pid+"\",process_type=\""+Process.Type+"\",process_name=\""+promEscape(Process.ProcessName)+"\"", filterUnit(Process.UsedMemory)))
 		}
 	}
 }
