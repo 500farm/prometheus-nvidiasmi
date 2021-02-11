@@ -1,0 +1,9 @@
+[Unit]
+Description=NvidiaSmi_Exporter
+
+[Service]
+ExecStart=/opt/prometheus/nvidiasmi_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
