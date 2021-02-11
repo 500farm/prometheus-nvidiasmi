@@ -2,7 +2,7 @@
 Description=NvidiaSmi_Exporter
 
 [Service]
-ExecStart=/opt/prometheus/nvidiasmi_exporter
+ExecStart=/usr/local/bin/nvidiasmi_exporter
 Restart=always
 
 [Install]
