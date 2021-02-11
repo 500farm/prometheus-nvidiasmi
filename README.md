@@ -5,7 +5,7 @@ Supports multiple GPUs.
 
 # How-To
 
-`docker run --runtime nvidia -p 9202:9202/tcp e7db/prometheus-nvidiasmi`
+`docker run --runtime nvidia -p 9202:9202/tcp sergeycheperis/prometheus-nvidiasmi`
 
 Check result at: [http://localhost:9202/metrics](http://localhost:9202/metrics)
 
