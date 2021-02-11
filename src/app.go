@@ -321,12 +321,12 @@ func writeMetric(w http.ResponseWriter, name string, labelValues map[string]stri
 		if meta != "" {
 			meta += ","
 		}
-		meta += k + "=" + v
+		meta += k + "=" + promEscape(v)
 	}
 	if meta != "" {
 		meta = "{" + meta + "}"
 	}
-	io.WriteString(w, "nvidiasmi_"+name+meta+" "+promEscape(value)+"\n")
+	io.WriteString(w, "nvidiasmi_"+name+meta+" "+value+"\n")
 }
 
 func metrics(w http.ResponseWriter, r *http.Request) {
