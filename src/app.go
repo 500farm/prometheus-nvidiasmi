@@ -332,7 +332,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		cmd = exec.Command("/bin/cat", dir+"/nvidia-smi.sample.xml")
+		cmd = exec.Command("/bin/cat", dir+"/sample-xmls/geforce-gtx-980.xml")
 	} else {
 		cmd = exec.Command(NVIDIA_SMI_PATH, "-q", "-x")
 	}
