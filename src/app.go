@@ -145,11 +145,17 @@ type NvidiaSmiLog struct {
 			GPUTempMaxThreshold    string `xml:"gpu_temp_max_threshold"`
 			GPUTempSlowThreshold   string `xml:"gpu_temp_slow_threshold"`
 			GPUTempMaxGpuThreshold string `xml:"gpu_temp_max_gpu_threshold"`
+			GPUTargetTemperature   string `xml:"gpu_target_temperature"`
 			MemoryTemp             string `xml:"memory_temp"`
 			GPUTempMaxMemThreshold string `xml:"gpu_temp_max_mem_threshold"`
 		} `xml:"temperature"`
+		SupportedGPUTargetTemp struct {
+			GPUTargetTempMin string `xml:"gpu_target_temp_min"`
+			GPUTargetTempMax string `xml:"gpu_target_temp_max"`
+		}
 		PowerReadings struct {
 			PowerState         string `xml:"power_state"`
+			PowerManagement    string `xml:"power_management"`
 			PowerDraw          string `xml:"power_draw"`
 			PowerLimit         string `xml:"power_limit"`
 			DefaultPowerLimit  string `xml:"default_power_limit"`
@@ -332,6 +338,9 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		writeMetric(w, "gpu_temp_max_threshold_celsius", labelValues, filterUnit(GPU.Temperature.GPUTempMaxThreshold))
 		writeMetric(w, "gpu_temp_slow_threshold_celsius", labelValues, filterUnit(GPU.Temperature.GPUTempSlowThreshold))
 		writeMetric(w, "gpu_temp_max_gpu_threshold_celsius", labelValues, filterUnit(GPU.Temperature.GPUTempMaxGpuThreshold))
+		writeMetric(w, "gpu_target_temp_celsius", labelValues, filterUnit(GPU.Temperature.GPUTargetTemperature))
+		writeMetric(w, "gpu_target_temp_min_celsius", labelValues, filterUnit(GPU.SupportedGPUTargetTemp.GPUTargetTempMin))
+		writeMetric(w, "gpu_target_temp_max_celsius", labelValues, filterUnit(GPU.SupportedGPUTargetTemp.GPUTargetTempMax))
 		writeMetric(w, "memory_temp_celsius", labelValues, filterUnit(GPU.Temperature.MemoryTemp))
 		writeMetric(w, "gpu_temp_max_mem_threshold_celsius", labelValues, filterUnit(GPU.Temperature.GPUTempMaxMemThreshold))
 		writeMetric(w, "power_state_int", labelValues, filterNumber(GPU.PowerReadings.PowerState))
