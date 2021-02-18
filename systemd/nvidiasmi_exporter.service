@@ -1,5 +1,7 @@
 [Unit]
 Description=NvidiaSmi_Exporter
+After=nvidia-persistenced
+Requires=nvidia-persistenced
 
 [Service]
 ExecStart=/usr/local/bin/nvidiasmi_exporter
