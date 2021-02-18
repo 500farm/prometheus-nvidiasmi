@@ -285,13 +285,16 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 	// Execute system command
 	stdout, err := cmd.Output()
 	if err != nil {
-		println(err.Error())
+		http.Error(w, "Error executing nvidia-smi: "+err.Error(), 500)
 		return
 	}
 
 	// Parse XML
 	var xmlData NvidiaSmiLog
-	xml.Unmarshal(stdout, &xmlData)
+	if err := xml.Unmarshal(stdout, &xmlData); err != nil {
+		http.Error(w, "Error parsing nvidia-smi output: "+err.Error(), 500)
+		return
+	}
 
 	// Output
 	writeMetric(w, "driver_version", nil, filterVersion(xmlData.DriverVersion))
