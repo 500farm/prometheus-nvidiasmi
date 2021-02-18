@@ -271,8 +271,6 @@ func writeMetric(w http.ResponseWriter, name string, labelValues map[string]stri
 }
 
 func metrics(w http.ResponseWriter, r *http.Request) {
-	log.Print("Serving /metrics")
-
 	var cmd *exec.Cmd
 	if testMode == "1" {
 		dir, err := os.Getwd()
@@ -381,7 +379,6 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	log.Print("Serving /index")
 	html := `<!doctype html>
 <html>
     <head>
