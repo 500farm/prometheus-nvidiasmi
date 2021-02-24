@@ -140,6 +140,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 			labelValues["process_pid"] = Process.Pid
 			labelValues["process_type"] = Process.Type
 			labelValues["process_name"] = Process.ProcessName
+			labelValues["container_id"], labelValues["container_name"], labelValues["docker_image"] = containerInfo(Process.Pid)
 
 			writeMetric(w, "process_used_memory_bytes", labelValues, filterUnit(Process.UsedMemory))
 		}
