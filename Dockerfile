@@ -1,6 +1,6 @@
 FROM nvidia/cuda:11.1-base
 
-MAINTAINER Sergey Cheperis
+LABEL maintainer="Sergey Cheperis"
 
 RUN apt-get update && \
     apt-get -y install golang --no-install-recommends && \
