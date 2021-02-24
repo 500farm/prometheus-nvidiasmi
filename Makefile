@@ -14,6 +14,7 @@ clean:
 install: bin/$(PROGRAM) uninstall
 	mkdir -p $(PREFIX)/bin
 	cp bin/$(PROGRAM) $(PREFIX)/bin/
+
 	cp systemd/$(PROGRAM).service /etc/systemd/system/
 	systemctl enable $(PROGRAM)
 	systemctl start $(PROGRAM)
@@ -22,4 +23,6 @@ install: bin/$(PROGRAM) uninstall
 uninstall:
 	systemctl stop $(PROGRAM) 2>/dev/null | true
 	systemctl disable $(PROGRAM) 2>/dev/null | true
+	rm -f /etc/systemd/system/$(PROGRAM).service 2>/dev/null | true
+
 	rm -f $(PREFIX)/bin/$(PROGRAM) 2>/dev/null | true
