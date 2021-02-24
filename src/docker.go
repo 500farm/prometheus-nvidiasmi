@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/prometheus/common/log"
 )
@@ -35,7 +36,7 @@ func containerInfo(pid string) (string, string, string) {
 				if err != nil {
 					log.Errorln("JSON parse error:", err)
 				} else if len(output) > 0 {
-					containerName = result[0].Name
+					containerName = strings.TrimLeft(result[0].Name, "/")
 					dockerImage = result[0].Config.Image
 				}
 			}
