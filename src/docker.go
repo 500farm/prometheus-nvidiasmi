@@ -21,7 +21,7 @@ func containerInfo(pid string) (string, string, string) {
 	containerName := ""
 	dockerImage := ""
 
-	if data, err := ioutil.ReadFile("/proc/" + pid + "/cgroup"); err != nil {
+	if data, err := ioutil.ReadFile("/proc/" + pid + "/cgroup"); err == nil {
 		containerId = string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
 		if containerId != "" {
 			dockerId := regexp.MustCompile(`[0-9a-f]+$`).FindString(containerId)
