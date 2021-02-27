@@ -70,9 +70,10 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 
 	for _, GPU := range xmlData.GPU {
 		labelValues := map[string]string{
-			"id":   GPU.Id,
-			"uuid": GPU.UUID,
-			"name": GPU.ProductName,
+			"id":       GPU.Id,
+			"short_id": regexp.MustCompile(`^\d{8}:`).ReplaceAllString(GPU.Id, ""),
+			"uuid":     GPU.UUID,
+			"name":     GPU.ProductName,
 		}
 
 		writeMetric(w, "pci_pcie_gen_max", labelValues, GPU.PCI.GPULinkInfo.PCIeGen.Max)
