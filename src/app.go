@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -137,11 +138,12 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		writeMetric(w, "clocks_throttle_reason_display_clocks_setting", labelValues, filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonDisplayClocksSetting))
 
 		for _, Process := range GPU.Processes.ProcessInfo {
-			labelValues["process_pid"] = Process.Pid
+			labelValues["process_pid"] = fmt.Sprintf("%d", Process.Pid)
 			labelValues["process_type"] = Process.Type
 			labelValues["process_name"] = Process.ProcessName
 			labelValues["container_id"], labelValues["container_name"], labelValues["docker_image"] = containerInfo(Process.Pid)
 
+			writeMetric(w, "process_start_timestamp", labelValues, fmt.Sprintf("%f", processStartTimestamp(Process.Pid)))
 			writeMetric(w, "process_used_memory_bytes", labelValues, filterUnit(Process.UsedMemory))
 		}
 	}

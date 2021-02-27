@@ -169,7 +169,7 @@ type NvidiaSmiLog struct {
 		} `xml:"clock_policy"`
 		Processes struct {
 			ProcessInfo []struct {
-				Pid         string `xml:"pid"`
+				Pid         int64  `xml:"pid"`
 				Type        string `xml:"type"`
 				ProcessName string `xml:"process_name"`
 				UsedMemory  string `xml:"used_memory"`
