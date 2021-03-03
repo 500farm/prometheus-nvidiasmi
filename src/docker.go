@@ -8,21 +8,24 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/prometheus/common/log"
 )
 
 type DockerInspectOutput []struct {
-	Name   string `json:"Name"`
-	Config struct {
+	Name    string `json:"Name"`
+	Created string `json:"Created"`
+	Config  struct {
 		Image string `json:"Image"`
 	} `json:"Config"`
 }
 
-func containerInfo(pid int64) (string, string, string) {
+func containerInfo(pid int64) (string, string, string, int64) {
 	containerId := ""
 	containerName := ""
 	dockerImage := ""
+	containerCreateTimestamp := int64(0)
 
 	if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid)); err == nil {
 		containerId = string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
@@ -40,12 +43,16 @@ func containerInfo(pid int64) (string, string, string) {
 				} else if len(output) > 0 {
 					containerName = strings.TrimLeft(result[0].Name, "/")
 					dockerImage = result[0].Config.Image
+					t, err := time.Parse(time.RFC3339Nano, result[0].Created)
+					if err != nil {
+						containerCreateTimestamp = t.Unix()
+					}
 				}
 			}
 		}
 	}
 
-	return containerId, containerName, dockerImage
+	return containerId, containerName, dockerImage, containerCreateTimestamp
 }
 
 func sysBootTime() int64 {
