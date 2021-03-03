@@ -142,11 +142,11 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 			labelValues["process_pid"] = fmt.Sprintf("%d", Process.Pid)
 			labelValues["process_type"] = Process.Type
 			labelValues["process_name"] = Process.ProcessName
-			var ts int64
+			var ts float64
 			labelValues["container_id"], labelValues["container_name"], labelValues["docker_image"], ts = containerInfo(Process.Pid)
-			labelValues["container_create_timestamp"] = fmt.Sprintf("%d", ts)
 
 			writeMetric(w, "process_start_timestamp", labelValues, fmt.Sprintf("%f", processStartTimestamp(Process.Pid)))
+			writeMetric(w, "process_container_start_timestamp", labelValues, fmt.Sprintf("%f", ts))
 			writeMetric(w, "process_used_memory_bytes", labelValues, filterUnit(Process.UsedMemory))
 		}
 	}

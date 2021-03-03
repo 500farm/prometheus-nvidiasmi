@@ -21,11 +21,11 @@ type DockerInspectOutput []struct {
 	} `json:"Config"`
 }
 
-func containerInfo(pid int64) (string, string, string, int64) {
+func containerInfo(pid int64) (string, string, string, float64) {
 	containerId := ""
 	containerName := ""
 	dockerImage := ""
-	containerCreateTimestamp := int64(0)
+	containerCreateTimestamp := float64(0)
 
 	if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid)); err == nil {
 		containerId = string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
@@ -45,7 +45,7 @@ func containerInfo(pid int64) (string, string, string, int64) {
 					dockerImage = result[0].Config.Image
 					t, err := time.Parse(time.RFC3339Nano, result[0].Created)
 					if err == nil {
-						containerCreateTimestamp = t.Unix()
+						containerCreateTimestamp = float64(t.UnixNano()) / 1e9
 					}
 				}
 			}
