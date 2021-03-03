@@ -44,7 +44,7 @@ func containerInfo(pid int64) (string, string, string, int64) {
 					containerName = strings.TrimLeft(result[0].Name, "/")
 					dockerImage = result[0].Config.Image
 					t, err := time.Parse(time.RFC3339Nano, result[0].Created)
-					if err != nil {
+					if err == nil {
 						containerCreateTimestamp = t.Unix()
 					}
 				}
