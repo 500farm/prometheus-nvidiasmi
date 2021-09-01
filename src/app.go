@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -137,6 +138,15 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		writeMetric(w, "clocks_throttle_reason_sync_boost", labelValues, filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonSyncBoost))
 		writeMetric(w, "clocks_throttle_reason_sw_thermal_slowdown", labelValues, filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonSWThermalSlowdown))
 		writeMetric(w, "clocks_throttle_reason_display_clocks_setting", labelValues, filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonDisplayClocksSetting))
+
+		pcie := pcieInfo(GPU.Id)
+		labelValues["aer_type"] = "fatal"
+		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerFatalCount))
+		labelValues["aer_type"] = "non-fatal"
+		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerNonFatalCount))
+		labelValues["aer_type"] = "correctable"
+		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerCorrectableCount))
+		delete(labelValues, "aer_type")
 
 		for _, Process := range GPU.Processes.ProcessInfo {
 			labelValues["process_pid"] = fmt.Sprintf("%d", Process.Pid)
