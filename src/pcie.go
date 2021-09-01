@@ -16,7 +16,7 @@ func pcieInfo(id string) PcieInfo {
 	result := PcieInfo{-1, -1, -1}
 
 	path := "/sys/bus/pci/devices/" +
-		regexp.MustCompile(`^0000(\d{4}):`).ReplaceAllString(id, "$1") + "/"
+		regexp.MustCompile(`^0000(\d{4})`).ReplaceAllString(id, "$1") + "/"
 
 	t, err := ioutil.ReadFile(path + "aer_dev_fatal")
 	if err == nil {
