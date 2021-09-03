@@ -198,10 +198,12 @@ func readNvidiaSmiOutput(output *NvidiaSmiOutput) error {
 	}
 
 	// parse XML
-	if err := xml.Unmarshal(stdout, output); err != nil {
+	var t NvidiaSmiOutput
+	if err := xml.Unmarshal(stdout, &t); err != nil {
 		return fmt.Errorf("Error parsing nvidia-smi output: %v", err)
 	}
 
+	*output = t
 	return nil
 }
 
