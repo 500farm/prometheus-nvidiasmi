@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
+	"io/ioutil"
+	"os/exec"
 	"regexp"
 	"strconv"
 )
@@ -21,7 +24,7 @@ SKIPPED TAGS:
 	<accounted_processes>
 */
 
-type NvidiaSmiLog struct {
+type NvidiaSmiOutput struct {
 	DriverVersion string `xml:"driver_version"`
 	CudaVersion   string `xml:"cuda_version"`
 	AttachedGPUs  string `xml:"attached_gpus"`
@@ -176,6 +179,33 @@ type NvidiaSmiLog struct {
 			} `xml:"process_info"`
 		} `xml:"processes"`
 	} `xml:"gpu"`
+}
+
+func readNvidiaSmiOutput(output *NvidiaSmiOutput) error {
+	var stdout []byte
+	var err error
+
+	if testFile != nil {
+		stdout, err = ioutil.ReadFile(*testFile)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		// Execute system command
+		cmd := exec.Command(*nvidiaSmiPath, "-q", "-x")
+		stdout, err = cmd.Output()
+		if err != nil {
+			return fmt.Errorf("Error executing nvidia-smi: %v", err)
+		}
+	}
+
+	// Parse XML
+	if err := xml.Unmarshal(stdout, output); err != nil {
+		return fmt.Errorf("Error parsing nvidia-smi output: %v", err)
+	}
+
+	return nil
 }
 
 func filterVersion(value string) string {

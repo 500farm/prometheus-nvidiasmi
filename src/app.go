@@ -1,22 +1,40 @@
 package main
 
 import (
-	"encoding/xml"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
-	"os/exec"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/version"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-const listenAddress = ":9202"
-const nvidiaSmiPath = "/usr/bin/nvidia-smi"
+var (
+	listenAddress = kingpin.Flag(
+		"listen",
+		"Address to listen on.",
+	).Default(":9202").String()
+	nvidiaSmiPath = kingpin.Flag(
+		"nvidia-smi-path",
+		"Path to nvidia-smi",
+	).Default("/usr/bin/nvidia-smi").String()
+	updateInterval = kingpin.Flag(
+		"update-interval",
+		"How often to run nvidia-smi",
+	).Default("5s").Duration()
+	testFile = kingpin.Flag(
+		"test-file",
+		"Run in test mode (read nvidia-smi xml output from specified file)",
+	).String()
+)
 
-var testMode string
+var nvidiaSmiOutput NvidiaSmiOutput
 
 func promEscape(value string) string {
 	var re = regexp.MustCompile(`[\\"]`)
@@ -24,52 +42,37 @@ func promEscape(value string) string {
 }
 
 func writeMetric(w http.ResponseWriter, name string, labelValues map[string]string, value string) {
+	// make sorted array of keys to achieve a fixed order (otherwise the map iteration order is random each time)
+	labelKeys := make([]string, 0, len(labelValues))
+	for k := range labelValues {
+		labelKeys = append(labelKeys, k)
+	}
+	sort.Strings(labelKeys)
+
 	var meta string
-	for k, v := range labelValues {
+	for _, k := range labelKeys {
 		if meta != "" {
 			meta += ","
 		}
-		meta += k + "=" + promEscape(v)
+		meta += k + "=" + promEscape(labelValues[k])
 	}
 	if meta != "" {
 		meta = "{" + meta + "}"
 	}
+
 	io.WriteString(w, "nvidiasmi_"+name+meta+" "+value+"\n")
 }
 
 func metrics(w http.ResponseWriter, r *http.Request) {
-	var cmd *exec.Cmd
-	if testMode == "1" {
-		dir, err := os.Getwd()
-		if err != nil {
-			log.Fatal(err)
-		}
-		cmd = exec.Command("/bin/cat", dir+"/sample-xmls/geforce-gtx-980.xml")
-	} else {
-		cmd = exec.Command(nvidiaSmiPath, "-q", "-x")
-	}
-
-	// Execute system command
-	stdout, err := cmd.Output()
-	if err != nil {
-		http.Error(w, "Error executing nvidia-smi: "+err.Error(), 500)
-		return
-	}
-
-	// Parse XML
-	var xmlData NvidiaSmiLog
-	if err := xml.Unmarshal(stdout, &xmlData); err != nil {
-		http.Error(w, "Error parsing nvidia-smi output: "+err.Error(), 500)
-		return
-	}
+	output := nvidiaSmiOutput
 
 	// Output
-	writeMetric(w, "driver_version", nil, filterVersion(xmlData.DriverVersion))
-	writeMetric(w, "cuda_version", nil, xmlData.CudaVersion)
-	writeMetric(w, "cuda_version", nil, xmlData.CudaVersion)
-	writeMetric(w, "attached_gpus", nil, xmlData.AttachedGPUs)
+	writeMetric(w, "driver_version", nil, filterVersion(output.DriverVersion))
+	writeMetric(w, "cuda_version", nil, output.CudaVersion)
+	writeMetric(w, "cuda_version", nil, output.CudaVersion)
+	writeMetric(w, "attached_gpus", nil, output.AttachedGPUs)
 
-	for _, GPU := range xmlData.GPU {
+	for _, GPU := range output.GPU {
 		labelValues := map[string]string{
 			"id":       GPU.Id,
 			"short_id": regexp.MustCompile(`^\d{8}:`).ReplaceAllString(GPU.Id, ""),
@@ -178,13 +181,32 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	testMode = os.Getenv("TEST_MODE")
-	if testMode == "1" {
-		log.Print("Test mode is enabled")
+	kingpin.Version(version.Print("nvidiasmi_exporter"))
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
+
+	if testFile != nil {
+		log.Infoln("Test mode is enabled")
 	}
 
-	log.Print("Nvidia SMI exporter listening on " + listenAddress)
+	err := readNvidiaSmiOutput(&nvidiaSmiOutput)
+	if err != nil {
+		// initial update must succeed, otherwise exit
+		log.Fatalln(err)
+	}
+
+	log.Infoln("Nvidia SMI exporter listening on " + *listenAddress)
 	http.HandleFunc("/", index)
 	http.HandleFunc("/metrics", metrics)
-	http.ListenAndServe(listenAddress, nil)
+	http.ListenAndServe(*listenAddress, nil)
+
+	go func() {
+		for {
+			time.Sleep(*updateInterval)
+			err := readNvidiaSmiOutput(&nvidiaSmiOutput)
+			if err != nil {
+				log.Errorln(err)
+			}
+		}
+	}()
 }
