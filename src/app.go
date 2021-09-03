@@ -195,11 +195,6 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	log.Infoln("Nvidia SMI exporter listening on " + *listenAddress)
-	http.HandleFunc("/", index)
-	http.HandleFunc("/metrics", metrics)
-	http.ListenAndServe(*listenAddress, nil)
-
 	go func() {
 		for {
 			time.Sleep(*updateInterval)
@@ -209,4 +204,9 @@ func main() {
 			}
 		}
 	}()
+
+	log.Infoln("Nvidia SMI exporter listening on " + *listenAddress)
+	http.HandleFunc("/", index)
+	http.HandleFunc("/metrics", metrics)
+	http.ListenAndServe(*listenAddress, nil)
 }
