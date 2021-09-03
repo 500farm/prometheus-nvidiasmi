@@ -185,7 +185,7 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
-	if testFile != nil {
+	if *testFile != "" {
 		log.Infoln("Test mode is enabled")
 	}
 

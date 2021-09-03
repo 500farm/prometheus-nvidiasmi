@@ -185,22 +185,19 @@ func readNvidiaSmiOutput(output *NvidiaSmiOutput) error {
 	var stdout []byte
 	var err error
 
-	if testFile != nil {
+	if *testFile != "" {
+		// read test file
 		stdout, err = ioutil.ReadFile(*testFile)
-		if err != nil {
-			return err
-		}
-
 	} else {
-		// Execute system command
+		// execute system command
 		cmd := exec.Command(*nvidiaSmiPath, "-q", "-x")
 		stdout, err = cmd.Output()
-		if err != nil {
-			return fmt.Errorf("Error executing nvidia-smi: %v", err)
-		}
+	}
+	if err != nil {
+		return err
 	}
 
-	// Parse XML
+	// parse XML
 	if err := xml.Unmarshal(stdout, output); err != nil {
 		return fmt.Errorf("Error parsing nvidia-smi output: %v", err)
 	}
