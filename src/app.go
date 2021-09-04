@@ -44,7 +44,9 @@ type OutputData struct {
 
 var storedOutput OutputData
 
-func readData(data *OutputData) error {
+func readData() error {
+	var data OutputData
+
 	nvSmi := &data.nvidiaSmiOutput
 	err := readNvidiaSmiOutput(nvSmi)
 	if err != nil {
@@ -63,6 +65,7 @@ func readData(data *OutputData) error {
 		}
 	}
 
+	storedOutput = data
 	return nil
 }
 
@@ -228,7 +231,7 @@ func main() {
 		log.Infoln("Test mode is enabled")
 	}
 
-	err := readData(&storedOutput)
+	err := readData()
 	if err != nil {
 		// initial update must succeed, otherwise exit
 		log.Fatalln(err)
@@ -237,7 +240,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(*updateInterval)
-			err := readData(&storedOutput)
+			err := readData()
 			if err != nil {
 				log.Errorln(err)
 			}
