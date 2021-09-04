@@ -161,7 +161,8 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 			labelValues["process_name"] = Process.ProcessName
 
 			var ctInfo ContainerInfo
-			if ctInfo, ok := ctInfos[pid]; !ok {
+			var ok bool
+			if ctInfo, ok = ctInfos[pid]; !ok {
 				ctInfo = containerInfo(pid)
 				ctInfos[pid] = ctInfo
 			}
