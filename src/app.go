@@ -72,6 +72,9 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 	writeMetric(w, "cuda_version", nil, output.CudaVersion)
 	writeMetric(w, "attached_gpus", nil, output.AttachedGPUs)
 
+	// Cache ContainerInfo by pid
+	ctInfos := make(map[int64]ContainerInfo)
+
 	for _, GPU := range output.GPU {
 		labelValues := map[string]string{
 			"id":       GPU.Id,
@@ -152,14 +155,26 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		delete(labelValues, "aer_type")
 
 		for _, Process := range GPU.Processes.ProcessInfo {
-			labelValues["process_pid"] = fmt.Sprintf("%d", Process.Pid)
+			pid := Process.Pid
+			labelValues["process_pid"] = fmt.Sprintf("%d", pid)
 			labelValues["process_type"] = Process.Type
 			labelValues["process_name"] = Process.ProcessName
-			var ts float64
-			labelValues["container_id"], labelValues["container_name"], labelValues["docker_image"], ts = containerInfo(Process.Pid)
 
-			writeMetric(w, "process_start_timestamp", labelValues, fmt.Sprintf("%f", processStartTimestamp(Process.Pid)))
-			writeMetric(w, "process_container_start_timestamp", labelValues, fmt.Sprintf("%f", ts))
+			var ctInfo ContainerInfo
+			if ctInfo, ok := ctInfos[pid]; !ok {
+				ctInfo = containerInfo(pid)
+				ctInfos[pid] = ctInfo
+			}
+
+			if ctInfo.containerId != "" {
+				labelValues["container_id"] = ctInfo.containerId
+				labelValues["container_name"] = ctInfo.containerName
+				labelValues["docker_image"] = ctInfo.dockerImage
+
+				writeMetric(w, "process_container_start_timestamp", labelValues, fmt.Sprintf("%f", ctInfo.containerStartTs))
+			}
+
+			writeMetric(w, "process_start_timestamp", labelValues, fmt.Sprintf("%f", ctInfo.processStartTs))
 			writeMetric(w, "process_used_memory_bytes", labelValues, filterUnit(Process.UsedMemory))
 		}
 	}

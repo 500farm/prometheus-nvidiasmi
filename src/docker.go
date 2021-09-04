@@ -21,16 +21,21 @@ type DockerInspectOutput []struct {
 	} `json:"Config"`
 }
 
-func containerInfo(pid int64) (string, string, string, float64) {
-	containerId := ""
-	containerName := ""
-	dockerImage := ""
-	containerCreateTimestamp := float64(0)
+type ContainerInfo struct {
+	containerId      string
+	containerName    string
+	dockerImage      string
+	containerStartTs float64
+	processStartTs   float64
+}
+
+func containerInfo(pid int64) ContainerInfo {
+	var info ContainerInfo
 
 	if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid)); err == nil {
-		containerId = string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
-		if containerId != "" {
-			dockerId := regexp.MustCompile(`[0-9a-f]+$`).FindString(containerId)
+		info.containerId = string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
+		if info.containerId != "" {
+			dockerId := regexp.MustCompile(`[0-9a-f]+$`).FindString(info.containerId)
 			cmd := exec.Command("docker", "inspect", dockerId)
 			output, err := cmd.Output()
 			if err != nil {
@@ -41,18 +46,19 @@ func containerInfo(pid int64) (string, string, string, float64) {
 				if err != nil {
 					log.Errorln("JSON parse error:", err)
 				} else if len(output) > 0 {
-					containerName = strings.TrimLeft(result[0].Name, "/")
-					dockerImage = result[0].Config.Image
+					info.containerName = strings.TrimLeft(result[0].Name, "/")
+					info.dockerImage = result[0].Config.Image
 					t, err := time.Parse(time.RFC3339Nano, result[0].Created)
 					if err == nil {
-						containerCreateTimestamp = float64(t.UnixNano()) / 1e9
+						info.containerStartTs = float64(t.UnixNano()) / 1e9
 					}
 				}
 			}
 		}
 	}
 
-	return containerId, containerName, dockerImage, containerCreateTimestamp
+	info.processStartTs = processStartTimestamp(pid)
+	return info
 }
 
 func sysBootTime() int64 {
