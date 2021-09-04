@@ -34,7 +34,39 @@ var (
 	).String()
 )
 
-var nvidiaSmiOutput NvidiaSmiOutput
+// read and store
+
+type OutputData struct {
+	nvidiaSmiOutput NvidiaSmiOutput
+	pcieInfo        map[string]PcieInfo     // by GPU Id
+	containerInfo   map[int64]ContainerInfo // by PID
+}
+
+var storedOutput OutputData
+
+func readData(data *OutputData) error {
+	nvSmi := &data.nvidiaSmiOutput
+	err := readNvidiaSmiOutput(nvSmi)
+	if err != nil {
+		return err
+	}
+
+	data.pcieInfo = make(map[string]PcieInfo)
+	data.containerInfo = make(map[int64]ContainerInfo)
+
+	for _, gpu := range nvSmi.GPU {
+		data.pcieInfo[gpu.Id] = pcieInfo(gpu.Id)
+		for _, process := range gpu.Processes.ProcessInfo {
+			if _, ok := data.containerInfo[process.Pid]; !ok {
+				data.containerInfo[process.Pid] = containerInfo(process.Pid)
+			}
+		}
+	}
+
+	return nil
+}
+
+// output
 
 func promEscape(value string) string {
 	var re = regexp.MustCompile(`[\\"]`)
@@ -64,16 +96,13 @@ func writeMetric(w http.ResponseWriter, name string, labelValues map[string]stri
 }
 
 func metrics(w http.ResponseWriter, r *http.Request) {
-	output := nvidiaSmiOutput
+	output := storedOutput.nvidiaSmiOutput
 
 	// Output
 	writeMetric(w, "driver_version", nil, filterVersion(output.DriverVersion))
 	writeMetric(w, "cuda_version", nil, output.CudaVersion)
 	writeMetric(w, "cuda_version", nil, output.CudaVersion)
 	writeMetric(w, "attached_gpus", nil, output.AttachedGPUs)
-
-	// Cache ContainerInfo by pid
-	ctInfos := make(map[int64]ContainerInfo)
 
 	for _, GPU := range output.GPU {
 		labelValues := map[string]string{
@@ -145,7 +174,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		writeMetric(w, "clocks_throttle_reason_sw_thermal_slowdown", labelValues, filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonSWThermalSlowdown))
 		writeMetric(w, "clocks_throttle_reason_display_clocks_setting", labelValues, filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonDisplayClocksSetting))
 
-		pcie := pcieInfo(GPU.Id)
+		pcie := storedOutput.pcieInfo[GPU.Id]
 		labelValues["aer_type"] = "fatal"
 		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerFatalCount))
 		labelValues["aer_type"] = "non-fatal"
@@ -160,13 +189,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 			labelValues["process_type"] = Process.Type
 			labelValues["process_name"] = Process.ProcessName
 
-			var ctInfo ContainerInfo
-			var ok bool
-			if ctInfo, ok = ctInfos[pid]; !ok {
-				ctInfo = containerInfo(pid)
-				ctInfos[pid] = ctInfo
-			}
-
+			ctInfo := storedOutput.containerInfo[pid]
 			if ctInfo.containerId != "" {
 				labelValues["container_id"] = ctInfo.containerId
 				labelValues["container_name"] = ctInfo.containerName
@@ -205,7 +228,7 @@ func main() {
 		log.Infoln("Test mode is enabled")
 	}
 
-	err := readNvidiaSmiOutput(&nvidiaSmiOutput)
+	err := readData(&storedOutput)
 	if err != nil {
 		// initial update must succeed, otherwise exit
 		log.Fatalln(err)
@@ -214,7 +237,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(*updateInterval)
-			err := readNvidiaSmiOutput(&nvidiaSmiOutput)
+			err := readData(&storedOutput)
 			if err != nil {
 				log.Errorln(err)
 			}
