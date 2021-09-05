@@ -102,10 +102,12 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 	output := storedOutput.nvidiaSmiOutput
 
 	// Output
-	writeMetric(w, "driver_version", nil, filterVersion(output.DriverVersion))
-	writeMetric(w, "cuda_version", nil, output.CudaVersion)
-	writeMetric(w, "cuda_version", nil, output.CudaVersion)
-	writeMetric(w, "attached_gpus", nil, output.AttachedGPUs)
+	labelValues := map[string]string{
+		"driver_version": filterVersion(output.DriverVersion),
+		"cuda_version":   output.CudaVersion,
+		"attached_gpus":  output.AttachedGPUs,
+	}
+	writeMetric(w, "info", labelValues, "1.0")
 
 	for _, GPU := range output.GPU {
 		labelValues := map[string]string{
