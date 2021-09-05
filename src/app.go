@@ -195,6 +195,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 				"pid":          fmt.Sprintf("%d", Process.Pid),
 				"process_type": Process.Type,
 			}
+			writeMetric(w, "process_up", labelValues2, "1.0")
 			writeMetric(w, "process_used_memory_bytes", labelValues2, filterUnit(Process.UsedMemory))
 		}
 	}
