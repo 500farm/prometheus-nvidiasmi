@@ -109,8 +109,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 
 	for _, GPU := range output.GPU {
 		labelValues := map[string]string{
-			"id":       GPU.Id,
-			"short_id": regexp.MustCompile(`^\d{8}:`).ReplaceAllString(GPU.Id, ""),
+			"gpu_id": strings.ToUpper(regexp.MustCompile(`^0{8}:`).ReplaceAllString(GPU.Id, "")),
 		}
 
 		writeMetric(w, "pci_pcie_gen_max", labelValues, GPU.PCI.GPULinkInfo.PCIeGen.Max)
@@ -190,8 +189,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 
 		for _, Process := range GPU.Processes.ProcessInfo {
 			labelValues2 := map[string]string{
-				"id":           labelValues["id"],
-				"short_id":     labelValues["short_id"],
+				"gpu_id":       labelValues["gpu_id"],
 				"pid":          fmt.Sprintf("%d", Process.Pid),
 				"process_type": Process.Type,
 			}
