@@ -181,7 +181,8 @@ type NvidiaSmiOutput struct {
 	} `xml:"gpu"`
 }
 
-func readNvidiaSmiOutput(output *NvidiaSmiOutput) error {
+func readNvidiaSmiOutput() (NvidiaSmiOutput, error) {
+	var t NvidiaSmiOutput
 	var stdout []byte
 	var err error
 
@@ -194,17 +195,15 @@ func readNvidiaSmiOutput(output *NvidiaSmiOutput) error {
 		stdout, err = cmd.Output()
 	}
 	if err != nil {
-		return err
+		return t, err
 	}
 
 	// parse XML
-	var t NvidiaSmiOutput
 	if err := xml.Unmarshal(stdout, &t); err != nil {
-		return fmt.Errorf("Error parsing nvidia-smi output: %v", err)
+		return t, fmt.Errorf("Error parsing nvidia-smi output: %v", err)
 	}
 
-	*output = t
-	return nil
+	return t, nil
 }
 
 func filterVersion(value string) string {

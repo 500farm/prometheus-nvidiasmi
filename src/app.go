@@ -38,8 +38,8 @@ var (
 
 type OutputData struct {
 	nvidiaSmiOutput NvidiaSmiOutput
-	pcieInfo        map[string]PcieInfo     // by GPU Id
-	containerInfo   map[int64]ContainerInfo // by PID
+	pcieInfo        map[string]PcieInfo   // by GPU Id
+	processInfo     map[int64]ProcessInfo // by PID
 }
 
 var storedOutput OutputData
@@ -47,20 +47,20 @@ var storedOutput OutputData
 func readData() error {
 	var data OutputData
 
-	nvSmi := &data.nvidiaSmiOutput
-	err := readNvidiaSmiOutput(nvSmi)
+	nvSmi, err := readNvidiaSmiOutput()
 	if err != nil {
 		return err
 	}
+	data.nvidiaSmiOutput = nvSmi
 
 	data.pcieInfo = make(map[string]PcieInfo)
-	data.containerInfo = make(map[int64]ContainerInfo)
+	data.processInfo = make(map[int64]ProcessInfo)
 
 	for _, gpu := range nvSmi.GPU {
 		data.pcieInfo[gpu.Id] = pcieInfo(gpu.Id)
 		for _, process := range gpu.Processes.ProcessInfo {
-			if _, ok := data.containerInfo[process.Pid]; !ok {
-				data.containerInfo[process.Pid] = containerInfo(process.Pid)
+			if _, ok := data.processInfo[process.Pid]; !ok {
+				data.processInfo[process.Pid] = processInfo(process.Pid)
 			}
 		}
 	}
@@ -111,8 +111,6 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		labelValues := map[string]string{
 			"id":       GPU.Id,
 			"short_id": regexp.MustCompile(`^\d{8}:`).ReplaceAllString(GPU.Id, ""),
-			"uuid":     GPU.UUID,
-			"name":     GPU.ProductName,
 		}
 
 		writeMetric(w, "pci_pcie_gen_max", labelValues, GPU.PCI.GPULinkInfo.PCIeGen.Max)
@@ -186,24 +184,39 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerCorrectableCount))
 		delete(labelValues, "aer_type")
 
+		labelValues["uuid"] = GPU.UUID
+		labelValues["name"] = GPU.ProductName
+		writeMetric(w, "gpu_info", labelValues, "1.0")
+
 		for _, Process := range GPU.Processes.ProcessInfo {
-			pid := Process.Pid
-			labelValues["process_pid"] = fmt.Sprintf("%d", pid)
-			labelValues["process_type"] = Process.Type
-			labelValues["process_name"] = Process.ProcessName
-
-			ctInfo := storedOutput.containerInfo[pid]
-			if ctInfo.containerId != "" {
-				labelValues["container_id"] = ctInfo.containerId
-				labelValues["container_name"] = ctInfo.containerName
-				labelValues["docker_image"] = ctInfo.dockerImage
-
-				writeMetric(w, "process_container_start_timestamp", labelValues, fmt.Sprintf("%f", ctInfo.containerStartTs))
+			labelValues2 := map[string]string{
+				"id":            labelValues["id"],
+				"short_id":      labelValues["short_id"],
+				"pid":           fmt.Sprintf("%d", Process.Pid),
+				"proocess_type": Process.Type,
 			}
-
-			writeMetric(w, "process_start_timestamp", labelValues, fmt.Sprintf("%f", ctInfo.processStartTs))
-			writeMetric(w, "process_used_memory_bytes", labelValues, filterUnit(Process.UsedMemory))
+			writeMetric(w, "process_used_memory_bytes", labelValues2, filterUnit(Process.UsedMemory))
 		}
+	}
+
+	for pid, pInfo := range storedOutput.processInfo {
+		labelValues := map[string]string{
+			"pid": fmt.Sprintf("%d", pid),
+		}
+
+		writeMetric(w, "process_start_timestamp", labelValues, fmt.Sprintf("%f", pInfo.processStartTs))
+		if pInfo.containerStartTs > 0 {
+			writeMetric(w, "process_container_start_timestamp", labelValues, fmt.Sprintf("%f", pInfo.containerStartTs))
+		}
+
+		labelValues["process_name"] = pInfo.processName
+		if pInfo.containerId != "" {
+			labelValues["container_id"] = pInfo.containerId
+			labelValues["container_name"] = pInfo.containerName
+			labelValues["docker_image"] = pInfo.dockerImage
+		}
+
+		writeMetric(w, "process_info", labelValues, "1.0")
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -21,16 +22,22 @@ type DockerInspectOutput []struct {
 	} `json:"Config"`
 }
 
-type ContainerInfo struct {
+type ProcessInfo struct {
+	processName      string
+	processStartTs   float64
 	containerId      string
 	containerName    string
 	dockerImage      string
 	containerStartTs float64
-	processStartTs   float64
 }
 
-func containerInfo(pid int64) ContainerInfo {
-	var info ContainerInfo
+func processInfo(pid int64) ProcessInfo {
+	var info ProcessInfo
+
+	if t, err := os.Readlink(fmt.Sprintf("/proc/%d/exe", pid)); err == nil {
+		info.processName = t
+	}
+	info.processStartTs = processStartTimestamp(pid)
 
 	if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid)); err == nil {
 		info.containerId = string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
@@ -57,7 +64,6 @@ func containerInfo(pid int64) ContainerInfo {
 		}
 	}
 
-	info.processStartTs = processStartTimestamp(pid)
 	return info
 }
 
