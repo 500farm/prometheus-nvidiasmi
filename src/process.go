@@ -15,9 +15,11 @@ import (
 )
 
 type DockerInspectOutput []struct {
-	Name    string `json:"Name"`
-	Created string `json:"Created"`
-	Config  struct {
+	Name  string `json:"Name"`
+	State struct {
+		StartedAt string `json:"StartedAt"`
+	} `json:"State"`
+	Config struct {
 		Image string `json:"Image"`
 	} `json:"Config"`
 }
@@ -55,7 +57,7 @@ func processInfo(pid int64) ProcessInfo {
 				} else if len(output) > 0 {
 					info.containerName = strings.TrimLeft(result[0].Name, "/")
 					info.dockerImage = result[0].Config.Image
-					t, err := time.Parse(time.RFC3339Nano, result[0].Created)
+					t, err := time.Parse(time.RFC3339Nano, result[0].State.StartedAt)
 					if err == nil {
 						info.containerStartTs = float64(t.UnixNano()) / 1e9
 					}
