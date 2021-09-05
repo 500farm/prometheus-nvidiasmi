@@ -190,10 +190,10 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 
 		for _, Process := range GPU.Processes.ProcessInfo {
 			labelValues2 := map[string]string{
-				"id":            labelValues["id"],
-				"short_id":      labelValues["short_id"],
-				"pid":           fmt.Sprintf("%d", Process.Pid),
-				"proocess_type": Process.Type,
+				"id":           labelValues["id"],
+				"short_id":     labelValues["short_id"],
+				"pid":          fmt.Sprintf("%d", Process.Pid),
+				"process_type": Process.Type,
 			}
 			writeMetric(w, "process_used_memory_bytes", labelValues2, filterUnit(Process.UsedMemory))
 		}
