@@ -184,8 +184,8 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerCorrectableCount))
 		delete(labelValues, "aer_type")
 
-		labelValues["uuid"] = GPU.UUID
-		labelValues["name"] = GPU.ProductName
+		labelValues["gpu_uuid"] = GPU.UUID
+		labelValues["gpu_name"] = GPU.ProductName
 		writeMetric(w, "gpu_info", labelValues, "1.0")
 
 		for _, Process := range GPU.Processes.ProcessInfo {
