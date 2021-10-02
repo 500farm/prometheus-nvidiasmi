@@ -64,7 +64,7 @@ func dockerInspect(cid string, pinfo *ProcessInfo) error {
 		return err
 	}
 	pinfo.containerId = cid
-	pinfo.containerName = ctJson.Name
+	pinfo.containerName = strings.TrimLeft(ctJson.Name, "/")
 	pinfo.dockerImage = ctJson.Config.Image
 	t, err := time.Parse(time.RFC3339Nano, ctJson.State.StartedAt)
 	if err == nil {
