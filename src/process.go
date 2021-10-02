@@ -1,28 +1,18 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/docker/docker/client"
 	"github.com/prometheus/common/log"
 )
-
-type DockerInspectOutput []struct {
-	Name  string `json:"Name"`
-	State struct {
-		StartedAt string `json:"StartedAt"`
-	} `json:"State"`
-	Config struct {
-		Image string `json:"Image"`
-	} `json:"Config"`
-}
 
 type ProcessInfo struct {
 	processName      string
@@ -35,38 +25,52 @@ type ProcessInfo struct {
 
 func processInfo(pid int64) ProcessInfo {
 	var info ProcessInfo
-
 	if t, err := os.Readlink(fmt.Sprintf("/proc/%d/exe", pid)); err == nil {
 		info.processName = t
 	}
 	info.processStartTs = processStartTimestamp(pid)
 
-	if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid)); err == nil {
-		info.containerId = string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
-		if info.containerId != "" {
-			dockerId := regexp.MustCompile(`[0-9a-f]+$`).FindString(info.containerId)
-			cmd := exec.Command("docker", "inspect", dockerId)
-			output, err := cmd.Output()
-			if err != nil {
-				log.Errorln("Command execution error:", err)
-			} else {
-				var result DockerInspectOutput
-				err := json.Unmarshal(output, &result)
-				if err != nil {
-					log.Errorln("JSON parse error:", err)
-				} else if len(output) > 0 {
-					info.containerName = strings.TrimLeft(result[0].Name, "/")
-					info.dockerImage = result[0].Config.Image
-					t, err := time.Parse(time.RFC3339Nano, result[0].State.StartedAt)
-					if err == nil {
-						info.containerStartTs = float64(t.UnixNano()) / 1e9
-					}
-				}
-			}
+	if cid := containerIdForProcess(pid); cid != "" {
+		if err := dockerInspect(cid, &info); err != nil {
+			log.Errorln("Docker inspect error:", err)
 		}
 	}
-
 	return info
+}
+
+func containerIdForProcess(pid int64) string {
+	if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid)); err == nil {
+		cgroupId := string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
+		if cgroupId != "" {
+			containerId := regexp.MustCompile(`[0-9a-f]+$`).FindString(cgroupId)
+			return containerId
+		}
+	}
+	return ""
+}
+
+var cli *client.Client
+
+func dockerInspect(cid string, pinfo *ProcessInfo) error {
+	if cli == nil {
+		var err error
+		cli, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		if err != nil {
+			return err
+		}
+	}
+	ctJson, err := cli.ContainerInspect(context.Background(), cid)
+	if err != nil {
+		return err
+	}
+	pinfo.containerId = cid
+	pinfo.containerName = ctJson.Name
+	pinfo.dockerImage = ctJson.Config.Image
+	t, err := time.Parse(time.RFC3339Nano, ctJson.State.StartedAt)
+	if err == nil {
+		pinfo.containerStartTs = float64(t.UnixNano()) / 1e9
+	}
+	return nil
 }
 
 func sysBootTime() int64 {
