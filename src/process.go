@@ -32,7 +32,7 @@ func processInfo(pid int64) ProcessInfo {
 
 	if cid := containerIdForProcess(pid); cid != "" {
 		if err := dockerInspect(cid, &info); err != nil {
-			log.Errorln("Docker inspect error:", err)
+			log.Errorln("Docker inspect:", err)
 		}
 	}
 	return info
