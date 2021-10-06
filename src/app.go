@@ -241,6 +241,8 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
+	log.Infoln("Starting Nvidia SMI exporter")
+
 	if *testFile != "" {
 		log.Infoln("Test mode is enabled")
 	}
