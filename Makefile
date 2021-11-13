@@ -18,6 +18,7 @@ install: bin/$(PROGRAM) uninstall
 	cp systemd/$(PROGRAM).service /etc/systemd/system/
 	systemctl enable $(PROGRAM)
 	systemctl start $(PROGRAM)
+	sleep 0.5
 	systemctl status $(PROGRAM)
 
 uninstall:
