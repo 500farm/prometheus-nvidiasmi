@@ -38,7 +38,7 @@ var (
 
 type OutputData struct {
 	nvidiaSmiOutput NvidiaSmiOutput
-	pcieInfo        map[string]PcieInfo   // by GPU Id
+	aerInfo         map[string]AerInfo    // by GPU Id
 	processInfo     map[int64]ProcessInfo // by PID
 }
 
@@ -53,11 +53,11 @@ func readData() error {
 	}
 	data.nvidiaSmiOutput = nvSmi
 
-	data.pcieInfo = make(map[string]PcieInfo)
+	data.aerInfo = make(map[string]AerInfo)
 	data.processInfo = make(map[int64]ProcessInfo)
 
 	for _, gpu := range nvSmi.GPU {
-		data.pcieInfo[gpu.Id] = pcieInfo(gpu.Id)
+		data.aerInfo[gpu.Id] = aerInfo(gpu.Id)
 		for _, process := range gpu.Processes.ProcessInfo {
 			if _, ok := data.processInfo[process.Pid]; !ok {
 				data.processInfo[process.Pid] = processInfo(process.Pid)
@@ -176,13 +176,13 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		writeMetric(w, "clocks_throttle_reason_sw_thermal_slowdown", labelValues, filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonSWThermalSlowdown))
 		writeMetric(w, "clocks_throttle_reason_display_clocks_setting", labelValues, filterActive(GPU.ClockThrottleReasons.ClockThrottleReasonDisplayClocksSetting))
 
-		pcie := storedOutput.pcieInfo[GPU.Id]
+		aer := storedOutput.aerInfo[GPU.Id]
 		labelValues["aer_type"] = "fatal"
-		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerFatalCount))
+		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(aer.AerFatalCount))
 		labelValues["aer_type"] = "non-fatal"
-		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerNonFatalCount))
+		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(aer.AerNonFatalCount))
 		labelValues["aer_type"] = "correctable"
-		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(pcie.AerCorrectableCount))
+		writeMetric(w, "aer_counter", labelValues, strconv.Itoa(aer.AerCorrectableCount))
 		delete(labelValues, "aer_type")
 
 		labelValues["gpu_uuid"] = GPU.UUID

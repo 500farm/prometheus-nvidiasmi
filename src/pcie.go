@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-type PcieInfo struct {
+type AerInfo struct {
 	AerFatalCount       int
 	AerNonFatalCount    int
 	AerCorrectableCount int
 }
 
-func pcieInfo(id string) PcieInfo {
-	result := PcieInfo{-1, -1, -1}
+func aerInfo(id string) AerInfo {
+	result := AerInfo{-1, -1, -1}
 
 	path := "/sys/bus/pci/devices/" +
 		strings.ToLower(regexp.MustCompile(`^0000(\d{4})`).ReplaceAllString(id, "$1")) + "/"
