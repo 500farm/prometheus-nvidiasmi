@@ -187,6 +187,11 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 
 		labelValues["gpu_uuid"] = GPU.UUID
 		labelValues["gpu_name"] = GPU.ProductName
+		vendor := vendorInfo(GPU.Id)
+		labelValues["vendor"] = vendor.Vendor
+		labelValues["device"] = vendor.Device
+		labelValues["subsys_vendor"] = vendor.SubsysVendor
+		labelValues["subsys_device"] = vendor.SubsysDevice
 		writeMetric(w, "gpu_info", labelValues, "1.0")
 
 		for _, Process := range GPU.Processes.ProcessInfo {
