@@ -47,7 +47,7 @@ func aerInfo(id string) AerInfo {
 
 func vendorInfo(id string) VendorInfo {
 	result := VendorInfo{}
-	cmd := exec.Command("lspci", "-vmm", "-s", id)
+	cmd := exec.Command("/usr/bin/lspci", "-vmm", "-s", id)
 	out, err := cmd.Output()
 	if err != nil {
 		return result

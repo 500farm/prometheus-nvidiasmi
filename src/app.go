@@ -39,6 +39,7 @@ var (
 type OutputData struct {
 	nvidiaSmiOutput NvidiaSmiOutput
 	aerInfo         map[string]AerInfo    // by GPU Id
+	vendorInfo      map[string]VendorInfo // by GPU Id
 	processInfo     map[int64]ProcessInfo // by PID
 }
 
@@ -54,10 +55,12 @@ func readData() error {
 	data.nvidiaSmiOutput = nvSmi
 
 	data.aerInfo = make(map[string]AerInfo)
+	data.vendorInfo = make(map[string]VendorInfo)
 	data.processInfo = make(map[int64]ProcessInfo)
 
 	for _, gpu := range nvSmi.GPU {
 		data.aerInfo[gpu.Id] = aerInfo(gpu.Id)
+		data.vendorInfo[gpu.Id] = vendorInfo(gpu.Id)
 		for _, process := range gpu.Processes.ProcessInfo {
 			if _, ok := data.processInfo[process.Pid]; !ok {
 				data.processInfo[process.Pid] = processInfo(process.Pid)
@@ -187,7 +190,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 
 		labelValues["gpu_uuid"] = GPU.UUID
 		labelValues["gpu_name"] = GPU.ProductName
-		vendor := vendorInfo(GPU.Id)
+		vendor := storedOutput.vendorInfo[GPU.Id]
 		labelValues["vendor"] = vendor.Vendor
 		labelValues["device"] = vendor.Device
 		labelValues["subsys_vendor"] = vendor.SubsysVendor
