@@ -46,6 +46,7 @@ type OutputData struct {
 var storedOutput OutputData
 
 func readData() error {
+	initial := storedOutput.aerInfo == nil
 	var data OutputData
 
 	nvSmi, err := readNvidiaSmiOutput()
@@ -60,7 +61,10 @@ func readData() error {
 
 	for _, gpu := range nvSmi.GPU {
 		data.aerInfo[gpu.Id] = aerInfo(gpu.Id)
-		data.vendorInfo[gpu.Id] = vendorInfo(gpu.Id)
+		if initial {
+			initVendorInfo()
+			data.vendorInfo[gpu.Id] = vendorInfo(gpu.Id)
+		}
 		for _, process := range gpu.Processes.ProcessInfo {
 			if _, ok := data.processInfo[process.Pid]; !ok {
 				data.processInfo[process.Pid] = processInfo(process.Pid)

@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/prometheus/common/log"
 )
 
 type AerInfo struct {
@@ -43,6 +45,14 @@ func aerInfo(id string) AerInfo {
 	}
 
 	return result
+}
+
+func initVendorInfo() {
+	cmd := exec.Command("/usr/sbin/update-pciids")
+	_, err := cmd.Output()
+	if err != nil {
+		log.Errorln(err)
+	}
 }
 
 func vendorInfo(id string) VendorInfo {
