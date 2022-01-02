@@ -110,7 +110,7 @@ nvidiasmi_clocks_throttle_reason_sw_thermal_slowdown{gpu_id="46:00.0"} 0
 nvidiasmi_clocks_throttle_reason_display_clocks_setting{gpu_id="46:00.0"} 0
 
 ### GPU name and UUID
-nvidiasmi_gpu_info{gpu_id="46:00.0",gpu_name="NVIDIA GeForce RTX 3090",gpu_uuid="GPU-8ad6666a-677c-9f0e-3b58-90220b309ddc"} 1.0
+nvidiasmi_gpu_info{device="GA102 [GeForce RTX 3090]",gpu_id="46:00.0",gpu_name="NVIDIA GeForce RTX 3090",gpu_uuid="GPU-325bf28b-e1e1-0628-3678-06673bdb76fd",subsys_device="Device 147d",subsys_vendor="NVIDIA Corporation",vendor="NVIDIA Corporation"} 1.0
 
 ### PCIe AER counters
 nvidiasmi_aer_counter{aer_type="fatal",gpu_id="46:00.0"} 0
