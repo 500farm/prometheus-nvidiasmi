@@ -144,7 +144,7 @@ type NvidiaSmiOutput struct {
 			GPUTargetTempMin string `xml:"gpu_target_temp_min"`
 			GPUTargetTempMax string `xml:"gpu_target_temp_max"`
 		}
-		PowerReadings struct {
+		PowerReadings struct { // backwards compatibility
 			PowerState         string `xml:"power_state"`
 			PowerManagement    string `xml:"power_management"`
 			PowerDraw          string `xml:"power_draw"`
@@ -154,6 +154,15 @@ type NvidiaSmiOutput struct {
 			MinPowerLimit      string `xml:"min_power_limit"`
 			MaxPowerLimit      string `xml:"max_power_limit"`
 		} `xml:"power_readings"`
+		GPUPowerReadings struct {
+			PowerState          string `xml:"power_state"`
+			PowerDraw           string `xml:"power_draw"`
+			CurrentPowerLimit   string `xml:"current_power_limit"`
+			RequestedPowerLimit string `xml:"requested_power_limit"`
+			DefaultPowerLimit   string `xml:"default_power_limit"`
+			MinPowerLimit       string `xml:"min_power_limit"`
+			MaxPowerLimit       string `xml:"max_power_limit"`
+		} `xml:"gpu_power_readings"`
 		Clocks struct {
 			GraphicsClock string `xml:"graphics_clock"`
 			SmClock       string `xml:"sm_clock"`
