@@ -210,6 +210,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 
 		labelValues["gpu_uuid"] = GPU.UUID
 		labelValues["gpu_name"] = GPU.ProductName
+		labelValues["serial"] = GPU.Serial
 		vendor := storedOutput.vendorInfo[GPU.Id]
 		labelValues["vendor"] = vendor.Vendor
 		labelValues["device"] = vendor.Device
