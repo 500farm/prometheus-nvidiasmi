@@ -24,6 +24,10 @@ var (
 		"nvidia-smi-path",
 		"Path to nvidia-smi",
 	).Default("/usr/bin/nvidia-smi").String()
+	gddr6Path = kingpin.Flag(
+		"gddr6-path",
+		"Path to gddr6",
+	).Default("/usr/local/bin/gddr6").String()
 	updateInterval = kingpin.Flag(
 		"update-interval",
 		"How often to run nvidia-smi",
@@ -41,6 +45,7 @@ type OutputData struct {
 	aerInfo         map[string]AerInfo    // by GPU Id
 	vendorInfo      map[string]VendorInfo // by GPU Id
 	processInfo     map[int64]ProcessInfo // by PID
+	temperatures    map[string]int        // by GPU Id
 }
 
 var storedOutput OutputData
@@ -77,6 +82,12 @@ func readData() error {
 		}
 	}
 
+	temperatures, err := getGddr6Temperatures()
+	if err != nil {
+		return err
+	}
+	data.temperatures = temperatures
+
 	storedOutput = data
 	return nil
 }
@@ -112,6 +123,7 @@ func writeMetric(w http.ResponseWriter, name string, labelValues map[string]stri
 
 func metrics(w http.ResponseWriter, r *http.Request) {
 	output := storedOutput.nvidiaSmiOutput
+	temperatures := storedOutput.temperatures
 
 	// Output
 	labelValues := map[string]string{
@@ -122,9 +134,8 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 	writeMetric(w, "info", labelValues, "1.0")
 
 	for _, GPU := range output.GPU {
-		labelValues := map[string]string{
-			"gpu_id": strings.ToUpper(regexp.MustCompile(`^0{8}:`).ReplaceAllString(GPU.Id, "")),
-		}
+		shortGpuId := strings.ToUpper(regexp.MustCompile(`^0{8}:`).ReplaceAllString(GPU.Id, ""))
+		labelValues := map[string]string{"gpu_id": shortGpuId}
 
 		writeMetric(w, "pci_pcie_gen_max", labelValues, GPU.PCI.GPULinkInfo.PCIeGen.Max)
 		writeMetric(w, "pci_pcie_gen_current", labelValues, GPU.PCI.GPULinkInfo.PCIeGen.Current)
@@ -159,7 +170,11 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		writeMetric(w, "gpu_target_temp_celsius", labelValues, filterUnit(GPU.Temperature.GPUTargetTemperature))
 		writeMetric(w, "gpu_target_temp_min_celsius", labelValues, filterUnit(GPU.SupportedGPUTargetTemp.GPUTargetTempMin))
 		writeMetric(w, "gpu_target_temp_max_celsius", labelValues, filterUnit(GPU.SupportedGPUTargetTemp.GPUTargetTempMax))
-		writeMetric(w, "memory_temp_celsius", labelValues, filterUnit(GPU.Temperature.MemoryTemp))
+		memoryTemp := filterUnit(GPU.Temperature.MemoryTemp)
+		if memoryTemp == "0" && temperatures != nil {
+			memoryTemp = fmt.Sprintf("%d", temperatures[shortGpuId])
+		}
+		writeMetric(w, "memory_temp_celsius", labelValues, memoryTemp)
 		writeMetric(w, "gpu_temp_max_mem_threshold_celsius", labelValues, filterUnit(GPU.Temperature.GPUTempMaxMemThreshold))
 		if GPU.GPUPowerReadings.PowerState != "" {
 			writeMetric(w, "power_state_int", labelValues, filterNumber(GPU.GPUPowerReadings.PowerState))

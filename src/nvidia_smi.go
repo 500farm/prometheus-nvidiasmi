@@ -32,6 +32,7 @@ type NvidiaSmiOutput struct {
 		Id                       string `xml:"id,attr"`
 		ProductName              string `xml:"product_name"`
 		ProductBrand             string `xml:"product_brand"`
+		ProductArchitecture      string `xml:"product_architecture"`
 		DisplayMode              string `xml:"display_mode"`
 		DisplayActive            string `xml:"display_active"`
 		PersistenceMode          string `xml:"persistence_mode"`
@@ -209,7 +210,7 @@ func readNvidiaSmiOutput() (NvidiaSmiOutput, error) {
 
 	// parse XML
 	if err := xml.Unmarshal(stdout, &t); err != nil {
-		return t, fmt.Errorf("Error parsing nvidia-smi output: %v", err)
+		return t, fmt.Errorf("error parsing nvidia-smi output: %v", err)
 	}
 
 	return t, nil

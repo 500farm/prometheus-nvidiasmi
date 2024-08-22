@@ -34,6 +34,11 @@ CLI args (specify in `/etc/systemd/system/nvidiasmi_exporter.service`):
     Run in test mode (read nvidia-smi xml output from specified file)
 ```
 
+### VRAM temperatures
+
+To monitor VRAM temperature for RTX 3000 / 4000 series, compile and install https://github.com/500farm/gddr6 as described in its README.
+Check that `/usr/local/bin/gddr6` exists, gives reasonable values and does not crash the system.
+
 ### Credits
 
 Based on work of [Kristoph Junge](https://github.com/kristophjunge/docker-prometheus-nvidiasmi) and 
