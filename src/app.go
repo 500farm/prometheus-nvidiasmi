@@ -38,7 +38,6 @@ var (
 	).String()
 )
 
-// Pre-compiled regex patterns for better performance
 var (
 	regexGpuIdPrefix = regexp.MustCompile(`^0{8}:`)
 	regexEscape      = regexp.MustCompile(`[\\"]`)
@@ -290,6 +289,7 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
+	log.SetFlags(0)
 	log.Println("Starting Nvidia SMI exporter")
 
 	if *testFile != "" {

@@ -13,7 +13,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// Pre-compiled regex patterns for better performance
 var (
 	regexDockerCgroup = regexp.MustCompile(`/docker/[0-9a-f]+`)
 	regexContainerId  = regexp.MustCompile(`[0-9a-f]+$`)

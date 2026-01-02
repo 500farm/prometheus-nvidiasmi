@@ -9,7 +9,6 @@ import (
 	"strconv"
 )
 
-// Pre-compiled regex patterns for better performance
 var (
 	regexVersion    = regexp.MustCompile(`(?P<version>\d+\.\d+).*`)
 	regexUnit       = regexp.MustCompile(`(?P<value>[\d\.]+) (?P<power>[KMGT]?[i]?)(?P<unit>.*)`)

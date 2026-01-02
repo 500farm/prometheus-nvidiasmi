@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-// Pre-compiled regex patterns for better performance
 var (
 	regexPciIdPrefix    = regexp.MustCompile(`^0000(\d{4})`)
 	regexAerFatal       = regexp.MustCompile(`TOTAL_ERR_FATAL (\d+)`)
