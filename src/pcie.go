@@ -2,12 +2,11 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/prometheus/common/log"
 )
 
 type AerInfo struct {
@@ -51,7 +50,7 @@ func initVendorInfo() {
 	cmd := exec.Command("/usr/sbin/update-pciids")
 	_, err := cmd.Output()
 	if err != nil {
-		log.Errorln(err)
+		log.Println("Error updating PCI IDs:", err)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
-	"github.com/prometheus/common/log"
 )
 
 type ProcessInfo struct {
@@ -32,7 +32,7 @@ func processInfo(pid int64) ProcessInfo {
 
 	if cid := containerIdForProcess(pid); cid != "" {
 		if err := dockerInspect(cid, &info); err != nil {
-			log.Errorln("Docker inspect:", err)
+			log.Println("Docker inspect error:", err)
 		}
 	}
 	return info

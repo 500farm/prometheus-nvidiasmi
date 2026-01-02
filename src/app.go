@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"sort"
@@ -10,9 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
-	"gopkg.in/alecthomas/kingpin.v2"
+	kingpin "github.com/alecthomas/kingpin/v2"
 )
 
 var (
@@ -285,16 +285,16 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
-	log.Infoln("Starting Nvidia SMI exporter")
+	log.Println("Starting Nvidia SMI exporter")
 
 	if *testFile != "" {
-		log.Infoln("Test mode is enabled")
+		log.Println("Test mode is enabled")
 	}
 
 	err := readData()
 	if err != nil {
 		// initial update must succeed, otherwise exit
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 
 	go func() {
@@ -302,12 +302,12 @@ func main() {
 			time.Sleep(*updateInterval)
 			err := readData()
 			if err != nil {
-				log.Errorln(err)
+				log.Println("Error:", err)
 			}
 		}
 	}()
 
-	log.Infoln("Nvidia SMI exporter listening on", *listenAddress)
+	log.Println("Nvidia SMI exporter listening on", *listenAddress)
 	http.HandleFunc("/", index)
 	http.HandleFunc("/metrics", metrics)
 	http.ListenAndServe(*listenAddress, nil)
