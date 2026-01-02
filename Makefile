@@ -1,10 +1,17 @@
 PREFIX=/usr/local
 PROGRAM=nvidiasmi_exporter
+GO_VERSION=1.25
 
 .PHONY: build clean install uninstall
 
 bin/$(PROGRAM): src/*.go
-	go build -o bin/$(PROGRAM) src/*.go
+	@mkdir -p bin
+	docker run --rm \
+		-v "$(PWD):/workspace" \
+		-w /workspace \
+		golang:$(GO_VERSION) \
+		go build -o bin/$(PROGRAM) src/*.go
+	@echo "Build complete: bin/$(PROGRAM)"
 
 build: bin/$(PROGRAM)
 
