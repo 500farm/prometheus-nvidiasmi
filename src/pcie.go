@@ -1,12 +1,21 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+)
+
+// Pre-compiled regex patterns for better performance
+var (
+	regexPciIdPrefix    = regexp.MustCompile(`^0000(\d{4})`)
+	regexAerFatal       = regexp.MustCompile(`TOTAL_ERR_FATAL (\d+)`)
+	regexAerNonFatal    = regexp.MustCompile(`TOTAL_ERR_NONFATAL (\d+)`)
+	regexAerCorrectable = regexp.MustCompile(`TOTAL_ERR_COR (\d+)`)
+	regexLspciField     = regexp.MustCompile(`^([A-Za-z]+):\s+(.+)$`)
 )
 
 type AerInfo struct {
@@ -26,21 +35,27 @@ func aerInfo(id string) AerInfo {
 	result := AerInfo{-1, -1, -1}
 
 	path := "/sys/bus/pci/devices/" +
-		strings.ToLower(regexp.MustCompile(`^0000(\d{4})`).ReplaceAllString(id, "$1")) + "/"
+		strings.ToLower(regexPciIdPrefix.ReplaceAllString(id, "$1")) + "/"
 
-	t, err := ioutil.ReadFile(path + "aer_dev_fatal")
+	t, err := os.ReadFile(path + "aer_dev_fatal")
 	if err == nil {
-		result.AerFatalCount, _ = strconv.Atoi(string(regexp.MustCompile(`TOTAL_ERR_FATAL (\d+)`).FindSubmatch(t)[1]))
+		if matches := regexAerFatal.FindSubmatch(t); len(matches) > 1 {
+			result.AerFatalCount, _ = strconv.Atoi(string(matches[1]))
+		}
 	}
 
-	t, err = ioutil.ReadFile(path + "aer_dev_nonfatal")
+	t, err = os.ReadFile(path + "aer_dev_nonfatal")
 	if err == nil {
-		result.AerNonFatalCount, _ = strconv.Atoi(string(regexp.MustCompile(`TOTAL_ERR_NONFATAL (\d+)`).FindSubmatch(t)[1]))
+		if matches := regexAerNonFatal.FindSubmatch(t); len(matches) > 1 {
+			result.AerNonFatalCount, _ = strconv.Atoi(string(matches[1]))
+		}
 	}
 
-	t, err = ioutil.ReadFile(path + "aer_dev_correctable")
+	t, err = os.ReadFile(path + "aer_dev_correctable")
 	if err == nil {
-		result.AerCorrectableCount, _ = strconv.Atoi(string(regexp.MustCompile(`TOTAL_ERR_COR (\d+)`).FindSubmatch(t)[1]))
+		if matches := regexAerCorrectable.FindSubmatch(t); len(matches) > 1 {
+			result.AerCorrectableCount, _ = strconv.Atoi(string(matches[1]))
+		}
 	}
 
 	return result
@@ -61,9 +76,8 @@ func vendorInfo(id string) VendorInfo {
 	if err != nil {
 		return result
 	}
-	re := regexp.MustCompile(`^([A-Za-z]+):\s+(.+)$`)
 	for _, line := range strings.Split(string(out), "\n") {
-		m := re.FindStringSubmatch(line)
+		m := regexLspciField.FindStringSubmatch(line)
 		if len(m) >= 3 {
 			k := m[1]
 			v := m[2]

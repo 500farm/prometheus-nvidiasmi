@@ -3,10 +3,17 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
+)
+
+// Pre-compiled regex patterns for better performance
+var (
+	regexVersion    = regexp.MustCompile(`(?P<version>\d+\.\d+).*`)
+	regexUnit       = regexp.MustCompile(`(?P<value>[\d\.]+) (?P<power>[KMGT]?[i]?)(?P<unit>.*)`)
+	regexNumber     = regexp.MustCompile("[^0-9.]")
 )
 
 /*
@@ -198,7 +205,7 @@ func readNvidiaSmiOutput() (NvidiaSmiOutput, error) {
 
 	if *testFile != "" {
 		// read test file
-		stdout, err = ioutil.ReadFile(*testFile)
+		stdout, err = os.ReadFile(*testFile)
 	} else {
 		// execute system command
 		cmd := exec.Command(*nvidiaSmiPath, "-q", "-x")
@@ -217,8 +224,7 @@ func readNvidiaSmiOutput() (NvidiaSmiOutput, error) {
 }
 
 func filterVersion(value string) string {
-	r := regexp.MustCompile(`(?P<version>\d+\.\d+).*`)
-	match := r.FindStringSubmatch(value)
+	match := regexVersion.FindStringSubmatch(value)
 	version := "0"
 	if len(match) > 0 {
 		version = match[1]
@@ -227,14 +233,13 @@ func filterVersion(value string) string {
 }
 
 func filterUnit(s string) string {
-	r := regexp.MustCompile(`(?P<value>[\d\.]+) (?P<power>[KMGT]?[i]?)(?P<unit>.*)`)
-	match := r.FindStringSubmatch(s)
+	match := regexUnit.FindStringSubmatch(s)
 	if len(match) == 0 {
 		return "0"
 	}
 
 	result := make(map[string]string)
-	for i, name := range r.SubexpNames() {
+	for i, name := range regexUnit.SubexpNames() {
 		if i != 0 && name != "" {
 			result[name] = match[i]
 		}
@@ -266,8 +271,7 @@ func filterUnit(s string) string {
 }
 
 func filterNumber(value string) string {
-	r := regexp.MustCompile("[^0-9.]")
-	return r.ReplaceAllString(value, "")
+	return regexNumber.ReplaceAllString(value, "")
 }
 
 func filterActive(value string) string {

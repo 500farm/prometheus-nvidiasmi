@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -12,6 +11,13 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
+)
+
+// Pre-compiled regex patterns for better performance
+var (
+	regexDockerCgroup = regexp.MustCompile(`/docker/[0-9a-f]+`)
+	regexContainerId  = regexp.MustCompile(`[0-9a-f]+$`)
+	regexBootTime     = regexp.MustCompile(`btime\s+(\d+)`)
 )
 
 type ProcessInfo struct {
@@ -39,10 +45,10 @@ func processInfo(pid int64) ProcessInfo {
 }
 
 func containerIdForProcess(pid int64) string {
-	if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid)); err == nil {
-		cgroupId := string(regexp.MustCompile(`/docker/[0-9a-f]+`).Find(data))
+	if data, err := os.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid)); err == nil {
+		cgroupId := string(regexDockerCgroup.Find(data))
 		if cgroupId != "" {
-			containerId := regexp.MustCompile(`[0-9a-f]+$`).FindString(cgroupId)
+			containerId := regexContainerId.FindString(cgroupId)
 			return containerId
 		}
 	}
@@ -64,7 +70,7 @@ func dockerInspect(cid string, pinfo *ProcessInfo) error {
 		return err
 	}
 	pinfo.containerId = cid
-	pinfo.containerName = strings.TrimLeft(ctJson.Name, "/")
+	pinfo.containerName = strings.TrimPrefix(ctJson.Name, "/")
 	pinfo.dockerImage = ctJson.Config.Image
 	t, err := time.Parse(time.RFC3339Nano, ctJson.State.StartedAt)
 	if err == nil {
@@ -74,9 +80,11 @@ func dockerInspect(cid string, pinfo *ProcessInfo) error {
 }
 
 func sysBootTime() int64 {
-	if data, err := ioutil.ReadFile("/proc/stat"); err == nil {
-		ts, _ := strconv.ParseInt(string(regexp.MustCompile(`btime\s+(\d+)`).FindSubmatch(data)[1]), 10, 64)
-		return ts
+	if data, err := os.ReadFile("/proc/stat"); err == nil {
+		if matches := regexBootTime.FindSubmatch(data); len(matches) > 1 {
+			ts, _ := strconv.ParseInt(string(matches[1]), 10, 64)
+			return ts
+		}
 	}
 	return 0
 }
@@ -87,9 +95,12 @@ func processStartTimestamp(pid int64) float64 {
 	if bootTime == 0 {
 		bootTime = sysBootTime()
 	}
-	if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/stat", pid)); err == nil {
-		ts, _ := strconv.ParseInt(strings.Split(string(data), " ")[21], 10, 64)
-		return float64(bootTime) + float64(ts)/100
+	if data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid)); err == nil {
+		fields := strings.Split(string(data), " ")
+		if len(fields) > 21 {
+			ts, _ := strconv.ParseInt(fields[21], 10, 64)
+			return float64(bootTime) + float64(ts)/100
+		}
 	}
 	return 0
 }

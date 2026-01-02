@@ -38,6 +38,12 @@ var (
 	).String()
 )
 
+// Pre-compiled regex patterns for better performance
+var (
+	regexGpuIdPrefix = regexp.MustCompile(`^0{8}:`)
+	regexEscape      = regexp.MustCompile(`[\\"]`)
+)
+
 // read and store
 
 type OutputData struct {
@@ -95,8 +101,7 @@ func readData() error {
 // output
 
 func promEscape(value string) string {
-	var re = regexp.MustCompile(`[\\"]`)
-	return `"` + strings.ReplaceAll(re.ReplaceAllString(value, `\$0`), "\n", `\n`) + `"`
+	return `"` + strings.ReplaceAll(regexEscape.ReplaceAllString(value, `\$0`), "\n", `\n`) + `"`
 }
 
 func writeMetric(w http.ResponseWriter, name string, labelValues map[string]string, value string) {
@@ -134,7 +139,7 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 	writeMetric(w, "info", labelValues, "1.0")
 
 	for _, GPU := range output.GPU {
-		shortGpuId := strings.ToUpper(regexp.MustCompile(`^0{8}:`).ReplaceAllString(GPU.Id, ""))
+		shortGpuId := strings.ToUpper(regexGpuIdPrefix.ReplaceAllString(GPU.Id, ""))
 		labelValues := map[string]string{"gpu_id": shortGpuId}
 
 		writeMetric(w, "pci_pcie_gen_max", labelValues, GPU.PCI.GPULinkInfo.PCIeGen.Max)
@@ -310,5 +315,7 @@ func main() {
 	log.Println("Nvidia SMI exporter listening on", *listenAddress)
 	http.HandleFunc("/", index)
 	http.HandleFunc("/metrics", metrics)
-	http.ListenAndServe(*listenAddress, nil)
+	if err := http.ListenAndServe(*listenAddress, nil); err != nil {
+		log.Fatal("ListenAndServe error:", err)
+	}
 }
