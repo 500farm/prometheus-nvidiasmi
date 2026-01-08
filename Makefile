@@ -1,6 +1,6 @@
 PREFIX=/usr/local
 PROGRAM=nvidiasmi_exporter
-GO_VERSION=1.25
+GO_VERSION=1.25-alpine
 
 .PHONY: build clean install uninstall
 
