@@ -164,6 +164,8 @@ type NvidiaSmiOutput struct {
 		GPUPowerReadings struct {
 			PowerState          string `xml:"power_state"`
 			PowerDraw           string `xml:"power_draw"`
+			AveragePowerDraw    string `xml:"average_power_draw"`
+			InstantPowerDraw    string `xml:"instant_power_draw"`
 			CurrentPowerLimit   string `xml:"current_power_limit"`
 			RequestedPowerLimit string `xml:"requested_power_limit"`
 			DefaultPowerLimit   string `xml:"default_power_limit"`

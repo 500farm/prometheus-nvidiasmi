@@ -180,24 +180,34 @@ func metrics(w http.ResponseWriter, r *http.Request) {
 		}
 		writeMetric(w, "memory_temp_celsius", labelValues, memoryTemp)
 		writeMetric(w, "gpu_temp_max_mem_threshold_celsius", labelValues, filterUnit(GPU.Temperature.GPUTempMaxMemThreshold))
+
 		if GPU.GPUPowerReadings.PowerState != "" {
-			writeMetric(w, "power_state_int", labelValues, filterNumber(GPU.GPUPowerReadings.PowerState))
-			writeMetric(w, "power_draw_watts", labelValues, filterUnit(GPU.GPUPowerReadings.PowerDraw))
-			writeMetric(w, "power_limit_watts", labelValues, filterUnit(GPU.GPUPowerReadings.CurrentPowerLimit))
-			writeMetric(w, "requested_power_limit_watts", labelValues, filterUnit(GPU.GPUPowerReadings.RequestedPowerLimit))
-			writeMetric(w, "default_power_limit_watts", labelValues, filterUnit(GPU.GPUPowerReadings.DefaultPowerLimit))
-			writeMetric(w, "min_power_limit_watts", labelValues, filterUnit(GPU.PowerReadings.MinPowerLimit))
-			writeMetric(w, "max_power_limit_watts", labelValues, filterUnit(GPU.PowerReadings.MaxPowerLimit))
+			readings := GPU.GPUPowerReadings
+			writeMetric(w, "power_state_int", labelValues, filterNumber(readings.PowerState))
+			for _, value := range []string{readings.AveragePowerDraw, readings.InstantPowerDraw, readings.PowerDraw} {
+				if value != "" {
+					writeMetric(w, "power_draw_watts", labelValues, filterUnit(value))
+					break
+				}
+			}
+			writeMetric(w, "power_limit_watts", labelValues, filterUnit(readings.CurrentPowerLimit))
+			writeMetric(w, "requested_power_limit_watts", labelValues, filterUnit(readings.RequestedPowerLimit))
+			writeMetric(w, "default_power_limit_watts", labelValues, filterUnit(readings.DefaultPowerLimit))
+			writeMetric(w, "min_power_limit_watts", labelValues, filterUnit(readings.MinPowerLimit))
+			writeMetric(w, "max_power_limit_watts", labelValues, filterUnit(readings.MaxPowerLimit))
+
 		} else if GPU.PowerReadings.PowerState != "" {
 			// backwards compatibility
-			writeMetric(w, "power_state_int", labelValues, filterNumber(GPU.PowerReadings.PowerState))
-			writeMetric(w, "power_draw_watts", labelValues, filterUnit(GPU.PowerReadings.PowerDraw))
-			writeMetric(w, "power_limit_watts", labelValues, filterUnit(GPU.PowerReadings.PowerLimit))
-			writeMetric(w, "default_power_limit_watts", labelValues, filterUnit(GPU.PowerReadings.DefaultPowerLimit))
-			writeMetric(w, "enforced_power_limit_watts", labelValues, filterUnit(GPU.PowerReadings.EnforcedPowerLimit))
-			writeMetric(w, "min_power_limit_watts", labelValues, filterUnit(GPU.PowerReadings.MinPowerLimit))
-			writeMetric(w, "max_power_limit_watts", labelValues, filterUnit(GPU.PowerReadings.MaxPowerLimit))
+			readings := GPU.PowerReadings
+			writeMetric(w, "power_state_int", labelValues, filterNumber(readings.PowerState))
+			writeMetric(w, "power_draw_watts", labelValues, filterUnit(readings.PowerDraw))
+			writeMetric(w, "power_limit_watts", labelValues, filterUnit(readings.PowerLimit))
+			writeMetric(w, "default_power_limit_watts", labelValues, filterUnit(readings.DefaultPowerLimit))
+			writeMetric(w, "enforced_power_limit_watts", labelValues, filterUnit(readings.EnforcedPowerLimit))
+			writeMetric(w, "min_power_limit_watts", labelValues, filterUnit(readings.MinPowerLimit))
+			writeMetric(w, "max_power_limit_watts", labelValues, filterUnit(readings.MaxPowerLimit))
 		}
+
 		writeMetric(w, "clock_graphics_hertz", labelValues, filterUnit(GPU.Clocks.GraphicsClock))
 		writeMetric(w, "clock_graphics_max_hertz", labelValues, filterUnit(GPU.MaxClocks.GraphicsClock))
 		writeMetric(w, "clock_sm_hertz", labelValues, filterUnit(GPU.Clocks.SmClock))
